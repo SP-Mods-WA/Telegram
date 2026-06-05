@@ -1,7 +1,10 @@
 name: Build Telegram Android
 
 on:
-  workflow_dispatch:  # Manual trigger එකට පමණක් (පළමුව test කරන්න)
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,15 +22,20 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - name: Setup Android SDK & NDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK 20
-        run: echo "y" | sdkmanager --install "ndk;20.1.5948944"
+      - name: Install NDK
+        run: |
+          echo "y" | sdkmanager --install "ndk;20.1.5948944"
 
-      - name: Decode Keystore (ඔබේ secrets තියෙනවා නම්)
+      - name: Decode Keystore
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > TMessagesProj/config/release.keystore
+
+      - name: Decode google-services.json
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > TMessagesProj/google-services.json
 
       - name: Setup gradle.properties
         run: |
@@ -38,10 +46,13 @@ jobs:
           RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}
           EOF
 
-      - name: Update BuildVars.java (API ID & Hash)
+      - name: Update BuildVars (API ID & Hash)
         run: |
-          sed -i 's/public static int APP_ID =.*/public static int APP_ID = ${{ secrets.TELEGRAM_API_ID }};/' TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java
-          sed -i 's/public static String APP_HASH =.*/public static String APP_HASH = "${{ secrets.TELEGRAM_API_HASH }}";/' TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java
+          sed -i 's/.*TELEGRAM_API_ID.*/public static int APP_ID = ${{ secrets.TELEGRAM_API_ID }};/' TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java
+          sed -i 's/.*TELEGRAM_API_HASH.*/public static String APP_HASH = "${{ secrets.TELEGRAM_API_HASH }}";/' TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
@@ -49,5 +60,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Telegram-Release-APK
+          name: Telegram-APK
           path: TMessagesProj_App/build/outputs/apk/release/*.apk
