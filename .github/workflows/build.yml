@@ -33,10 +33,7 @@ jobs:
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > TMessagesProj/config/release.keystore
 
-      - name: Decode google-services.json
-        run: |
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > TMessagesProj/google-services.json
-
+      
       - name: Setup gradle.properties
         run: |
           cat >> gradle.properties << EOF
