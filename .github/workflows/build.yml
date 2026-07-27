@@ -29,6 +29,33 @@ jobs:
         run: |
           echo "y" | sdkmanager --install "ndk;20.1.5948944"
 
+      - name: Change Package Name
+        run: |
+          OLD_PKG="org.telegram.messenger"
+          NEW_PKG="com.spmods.spgram"
+
+          OLD_PATH="TMessagesProj/src/main/java/org/telegram/messenger"
+          NEW_PATH="TMessagesProj/src/main/java/com/spmods/spgram"
+
+          # Java/Kotlin files වල package name replace කරනවා
+          find TMessagesProj/src -type f \( -name "*.java" -o -name "*.kt" \) \
+            -exec sed -i "s|$OLD_PKG|$NEW_PKG|g" {} +
+
+          # XML files වල package name replace කරනවා (AndroidManifest, layouts, etc.)
+          find TMessagesProj -type f -name "*.xml" \
+            -exec sed -i "s|$OLD_PKG|$NEW_PKG|g" {} +
+
+          # Gradle files වල package name replace කරනවා
+          find . -type f -name "*.gradle" \
+            -exec sed -i "s|$OLD_PKG|$NEW_PKG|g" {} +
+          find . -type f -name "*.gradle.kts" \
+            -exec sed -i "s|$OLD_PKG|$NEW_PKG|g" {} +
+
+          # Folder structure rename කරනවා
+          mkdir -p "$NEW_PATH"
+          cp -r "$OLD_PATH/." "$NEW_PATH/"
+          rm -rf "TMessagesProj/src/main/java/org"
+
       - name: Decode Keystore
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > TMessagesProj/config/release.keystore
@@ -44,8 +71,8 @@ jobs:
 
       - name: Update BuildVars (API ID & Hash)
         run: |
-          sed -i 's/.*TELEGRAM_API_ID.*/public static int APP_ID = ${{ secrets.TELEGRAM_API_ID }};/' TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java
-          sed -i 's/.*TELEGRAM_API_HASH.*/public static String APP_HASH = "${{ secrets.TELEGRAM_API_HASH }}";/' TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java
+          sed -i 's/.*TELEGRAM_API_ID.*/public static int APP_ID = ${{ secrets.TELEGRAM_API_ID }};/' TMessagesProj/src/main/java/com/spmods/spgram/BuildVars.java
+          sed -i 's/.*TELEGRAM_API_HASH.*/public static String APP_HASH = "${{ secrets.TELEGRAM_API_HASH }}";/' TMessagesProj/src/main/java/com/spmods/spgram/BuildVars.java
 
       - name: Grant execute permission
         run: chmod +x gradlew
